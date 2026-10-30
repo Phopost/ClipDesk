@@ -1,5 +1,12 @@
-"""Publish ClipDesk repository and releases to GitHub via REST API."""
+"""Publish ClipDesk repository and releases to GitHub via REST API.
 
+Supports dynamic versioning, custom commit messages, automated release publishing,
+and multi-fallback token resolution.
+"""
+
+from __future__ import annotations
+
+import argparse
 import base64
 import json
 import os
@@ -14,11 +21,37 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETUP_EXE = os.path.join(os.path.expanduser("~"), "Desktop", "ClipDesk-Setup.exe")
 
 
+def get_current_app_version() -> str:
+    """Read version from app/version.py if present, otherwise default to 1.0.0."""
+    try:
+        sys.path.insert(0, ROOT)
+        from app.version import __version__
+        return __version__
+    except Exception:
+        return "1.0.0"
+
+
 def get_token() -> str:
-    tok = os.environ.get("GITHUB_TOKEN", "")
-    if not tok:
-        raise SystemExit("Missing GITHUB_TOKEN environment variable.")
-    return tok
+    """Resolve GitHub token from environment or persistent secret paths."""
+    tok = os.environ.get("GITHUB_TOKEN", "").strip()
+    if tok:
+        return tok
+
+    candidate_files = [
+        os.path.expanduser(r"~\.gemini\antigravity\github_token.txt"),
+        os.path.expanduser(r"~\.github_token"),
+    ]
+    for path in candidate_files:
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    tok = f.read().strip()
+                if tok:
+                    return tok
+            except Exception:
+                pass
+
+    raise SystemExit("Missing GITHUB_TOKEN environment variable or persistent token file.")
 
 
 def get_headers() -> dict:
@@ -76,7 +109,7 @@ def create_blob(abs_path: str) -> str:
     return res["sha"]
 
 
-def push_code():
+def push_code(commit_msg: str) -> str:
     print("Checking repository main branch...", flush=True)
     ref_info = api_request(f"/repos/{OWNER}/{REPO}/git/ref/heads/main")
     base_commit_sha = ref_info["object"]["sha"]
@@ -94,7 +127,7 @@ def push_code():
             "type": "blob",
             "sha": sha,
         })
-        if i % 10 == 0 or i == len(files):
+        if i % 15 == 0 or i == len(files):
             print(f"Uploaded blobs: {i}/{len(files)} ({rel_path})", flush=True)
 
     print("Creating Git Tree...", flush=True)
@@ -102,16 +135,8 @@ def push_code():
         "tree": tree_items,
     }, method="POST")
     tree_sha = tree_res["sha"]
-    print(f"Git Tree created: {tree_sha}", flush=True)
 
-    commit_msg = (
-        "Release ClipDesk v1.0.0 — Sky-Blue Wave Glass Downloader\n\n"
-        "- Complete source code, PySide6 UI, Wave Widgets, and Sound effects\n"
-        "- High-speed 16x multi-fragment download engine with zero-wait fast-path\n"
-        "- Auto-check on paste URL input component\n"
-        "- 100% test coverage with 139 passing unit & integration tests\n"
-        "- Packaging scripts and one-click standalone installer"
-    )
+    print("Creating Git Commit...", flush=True)
     commit_res = api_request(f"/repos/{OWNER}/{REPO}/git/commits", {
         "message": commit_msg,
         "tree": tree_sha,
@@ -125,51 +150,39 @@ def push_code():
         "force": True,
     }, method="PATCH")
     print(f"Successfully pushed code to branch 'main'!", flush=True)
+    return new_commit_sha
 
 
-def create_release():
-    print("Creating GitHub Release v1.0.0...", flush=True)
-    body = (
-        "## 🌊 ClipDesk v1.0.0 — Official Windows Release\n\n"
-        "**ClipDesk** คือโปรแกรมดาวน์โหลดวิดีโอและเสียงจาก YouTube & TikTok บน Windows 10/11 x64\n\n"
-        "### ✨ ฟีเจอร์เด่นในรุ่นนี้\n"
-        "- 🚀 **ดาวน์โหลดเร็วสูงสุดเต็มสปีด:** เร่งความเร็วด้วย 16x Concurrent Fragments + 10MB HTTP Chunking\n"
-        "- ⚡ **ตรวจสอบลิงก์อัตโนมัติ:** วางลิงก์ปุ๊บ ระบบดึงข้อมูลคลิป ปก และระยะเวลาให้ทันทีใน 0.12 วินาที\n"
-        "- 🎨 **Sky-Blue Wave Glass UI:** หน้าต่างดีไซน์โมเดิร์นคลื่นน้ำโปร่งแสง อนิเมชั่นนุ่มนวล พร้อมชุดเสียง Sound Effects\n"
-        "- 🎬 **เลือกฟอร์แมตอิสระ:** รองรับทั้ง MP4 (สูงสุด 1080p/4K H.264+AAC) และแปลงเป็นเสียง MP3 (128-320 kbps)\n"
-        "- 🛡️ **ความปลอดภัยสูงสุด:** ตรวจไฟล์ด้วย FFprobe ก่อนส่งมอบ ไม่เขียนทับไฟล์เดิม และยกเลิกงานได้ทันทีด้วย Windows Job Object\n\n"
-        "### 📥 วิธีติดตั้งง่ายๆ เพียงคลิกเดียว:\n"
-        "1. ดาวน์โหลดไฟล์ `ClipDesk-Setup.exe` ด้านล่าง\n"
-        "2. ดับเบิลคลิกไฟล์ติดตั้ง (ไม่ต้องใช้สิทธิ์ Administrator / ไม่ติดหน้าต่าง UAC)\n"
-        "3. โปรแกรมจะสร้างไอคอนทางลัดบน Desktop และเปิดให้ใช้งานได้ทันที!"
-    )
+def create_or_update_release(version: str, title: str, body: str, upload_installer: bool = True):
+    tag = f"v{version}" if not version.startswith("v") else version
+    print(f"Managing GitHub Release {tag}...", flush=True)
+
     payload = {
-        "tag_name": "v1.0.0",
+        "tag_name": tag,
         "target_commitish": "main",
-        "name": "ClipDesk v1.0.0 — One-Click Setup",
+        "name": title or f"ClipDesk {tag}",
         "body": body,
         "draft": False,
         "prerelease": False,
     }
-    # Check if release exists
+
     try:
-        rel = api_request(f"/repos/{OWNER}/{REPO}/releases/tags/v1.0.0")
-        print("Release v1.0.0 already exists.", flush=True)
+        rel = api_request(f"/repos/{OWNER}/{REPO}/releases/tags/{tag}")
+        print(f"Release {tag} exists (ID: {rel['id']}). Updating description...", flush=True)
+        rel = api_request(f"/repos/{OWNER}/{REPO}/releases/{rel['id']}", payload, method="PATCH")
     except urllib.error.HTTPError:
         rel = api_request(f"/repos/{OWNER}/{REPO}/releases", payload, method="POST")
-        print(f"Created Release v1.0.0 (ID: {rel['id']})", flush=True)
+        print(f"Created new Release {tag} (ID: {rel['id']})", flush=True)
 
     release_id = rel["id"]
 
-    # Upload ClipDesk-Setup.exe asset if present
-    if os.path.isfile(SETUP_EXE):
+    if upload_installer and os.path.isfile(SETUP_EXE):
         size_mb = os.path.getsize(SETUP_EXE) / (1024 * 1024)
         print(f"Uploading installer asset: {SETUP_EXE} ({size_mb:.1f} MB)...", flush=True)
 
-        # Check if asset already uploaded
         for a in rel.get("assets", []):
             if a["name"] == "ClipDesk-Setup.exe":
-                print("Asset ClipDesk-Setup.exe already uploaded. Deleting old asset...", flush=True)
+                print("Deleting outdated installer asset...", flush=True)
                 api_request(f"/repos/{OWNER}/{REPO}/releases/assets/{a['id']}", method="DELETE")
 
         upload_url = f"https://uploads.github.com/repos/{OWNER}/{REPO}/releases/{release_id}/assets?name=ClipDesk-Setup.exe"
@@ -189,9 +202,36 @@ def create_release():
         with urllib.request.urlopen(req) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             dt = time.time() - t0
-            print(f"Asset uploaded successfully in {dt:.1f}s: {data.get('browser_download_url')}", flush=True)
+            print(f"Asset uploaded in {dt:.1f}s: {data.get('browser_download_url')}", flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Publish ClipDesk to GitHub")
+    parser.add_argument("--version", default=get_current_app_version(), help="Target version tag (e.g. 1.0.0)")
+    parser.add_argument("--message", default=None, help="Commit message")
+    parser.add_argument("--title", default=None, help="Release title")
+    parser.add_argument("--notes", default=None, help="Release notes body")
+    parser.add_argument("--skip-installer", action="store_true", help="Do not upload installer")
+    args = parser.parse_args()
+
+    ver = args.version
+    tag = f"v{ver}" if not ver.startswith("v") else ver
+
+    commit_msg = args.message or f"Update ClipDesk {tag} — Source & Assets"
+    title = args.title or f"ClipDesk {tag} — One-Click Setup"
+    body = args.notes or (
+        f"## 🌊 ClipDesk {tag}\n\n"
+        f"อัปเดตเวอร์ชัน {tag} ล่าสุดของ ClipDesk พร้อมฟังก์ชันการทำงานครบถ้วน\n\n"
+        f"- รองรับดาวน์โหลด YouTube & TikTok เต็มสปีด 16x Multi-Fragment\n"
+        f"- Sky-Blue Wave Glass UI & Animations\n"
+        f"- ฝังโลโก้และไอคอนแอปพลิเคชันอย่างสมบูรณ์\n\n"
+        f"### 📥 ดาวน์โหลดตัวติดตั้ง:\n"
+        f"- ดาวน์โหลด `ClipDesk-Setup.exe` ด้านล่าง แล้วดับเบิลคลิกเพื่อเริ่มใช้งานได้ทันที"
+    )
+
+    push_code(commit_msg)
+    create_or_update_release(ver, title, body, upload_installer=not args.skip_installer)
 
 
 if __name__ == "__main__":
-    push_code()
-    create_release()
+    main()

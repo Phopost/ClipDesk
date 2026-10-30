@@ -25,6 +25,8 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("ClipDesk")
     app.setOrganizationName("ClipDesk")
+    from app.version import __version__
+    app.setApplicationVersion(__version__)
 
     # Set Window & Taskbar Icon
     from PySide6.QtGui import QIcon
