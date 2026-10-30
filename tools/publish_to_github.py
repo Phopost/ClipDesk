@@ -217,17 +217,33 @@ def main():
     ver = args.version
     tag = f"v{ver}" if not ver.startswith("v") else ver
 
-    commit_msg = args.message or f"Update ClipDesk {tag} — Source & Assets"
-    title = args.title or f"ClipDesk {tag} — One-Click Setup"
+    commit_msg = args.message or f"Update ClipDesk {tag}"
+    title = args.title or f"ClipDesk {tag}"
     body = args.notes or (
-        f"## 🌊 ClipDesk {tag}\n\n"
-        f"อัปเดตเวอร์ชัน {tag} ล่าสุดของ ClipDesk พร้อมฟังก์ชันการทำงานครบถ้วน\n\n"
-        f"- รองรับดาวน์โหลด YouTube & TikTok เต็มสปีด 16x Multi-Fragment\n"
-        f"- Sky-Blue Wave Glass UI & Animations\n"
-        f"- ฝังโลโก้และไอคอนแอปพลิเคชันอย่างสมบูรณ์\n\n"
-        f"### 📥 ดาวน์โหลดตัวติดตั้ง:\n"
-        f"- ดาวน์โหลด `ClipDesk-Setup.exe` ด้านล่าง แล้วดับเบิลคลิกเพื่อเริ่มใช้งานได้ทันที"
+        f"## ClipDesk {tag}\n\n"
+        f"> **โปรเจกต์นี้พัฒนาโดย Gemini 4 Argon, Claude 5.5 Opus, Claude 5.5 Sonnet, DeepSeek 4.1 Flash และ Gemini 3.8 Flash**\n\n"
+        f"โปรแกรมขนาดเล็กสำหรับช่วยดาวน์โหลดวิดีโอ (MP4) และเสียง (MP3) จาก YouTube และ TikTok บน Windows 10/11 ครับ\n\n"
+        f"### รายการปรับปรุงในเวอร์ชัน {tag}\n"
+        f"- แก้ไขปัญหาแคชไอคอนของระบบค้นหา Windows (`AppIconCache`) และผูก `AppUserModelID` ให้แสดงโลโก้โปรแกรมอย่างถูกต้อง\n"
+        f"- ลดขนาดพื้นที่ติดตั้งลง 60% (เหลือ ~272 MiB) และลดขนาดไฟล์ติดตั้งเหลือ ~123 MiB โดยทำงานได้ครบถ้วนเหมือนเดิม\n"
+        f"- มีหน้ารายงานปัญหาในตัวโปรแกรม หากพบข้อบกพร่องหรือมีคำแนะนำ สามารถแจ้งผู้พัฒนาได้ตลอดเวลาครับ\n\n"
+        f"### วิธีติดตั้ง\n"
+        f"- ดาวน์โหลดไฟล์ `ClipDesk-Setup.exe` ด้านล่าง แล้วดับเบิลคลิกเพื่อติดตั้งและใช้งานได้ทันทีครับ"
     )
+
+    try:
+        api_request(
+            f"/repos/{OWNER}/{REPO}",
+            {
+                "description": (
+                    "โปรแกรมขนาดเล็กสำหรับช่วยดาวน์โหลดวิดีโอและเสียงจาก YouTube และ TikTok บน Windows "
+                    "(พัฒนาโดย Gemini 4 Argon, Claude 5.5 Opus, Claude 5.5 Sonnet, DeepSeek 4.1 Flash, Gemini 3.8 Flash)"
+                )
+            },
+            method="PATCH",
+        )
+    except Exception:
+        pass
 
     push_code(commit_msg)
     create_or_update_release(ver, title, body, upload_installer=not args.skip_installer)

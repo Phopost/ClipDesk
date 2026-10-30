@@ -120,10 +120,12 @@ def build(clean: bool = True, console: bool = False) -> str:
     shutil.rmtree(vendor_dst, ignore_errors=True)
     shutil.copytree(VENDOR, vendor_dst)
 
-    # Ship the license notices next to the executable
+    # Ship the license notices and root icon next to the executable
     notices = os.path.join(ROOT, "THIRD_PARTY_NOTICES.md")
     if os.path.isfile(notices):
         shutil.copy2(notices, os.path.join(DIST_DIR, "ClipDesk", "THIRD_PARTY_NOTICES.md"))
+    if os.path.isfile(ICON):
+        shutil.copy2(ICON, os.path.join(DIST_DIR, "ClipDesk", "clipdesk.ico"))
 
     return exe
 

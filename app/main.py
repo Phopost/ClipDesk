@@ -21,6 +21,19 @@ from app.ui.settings_dialog import SettingsDialog
 
 def main():
     """Launch ClipDesk application."""
+    from app.version import __version__
+
+    # Bind explicit Windows AppUserModelID before QApplication starts so the
+    # taskbar and Start Menu always associate the custom icon with ClipDesk.
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                f"ClipDesk.Desktop.App.{__version__}"
+            )
+        except Exception:
+            pass
+
     # High DPI support
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
@@ -29,7 +42,6 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("ClipDesk")
     app.setOrganizationName("ClipDesk")
-    from app.version import __version__
     app.setApplicationVersion(__version__)
 
     # Set Window & Taskbar Icon

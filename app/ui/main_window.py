@@ -99,13 +99,14 @@ class MainWindow(QMainWindow):
         # Notification bell button (top-right, matching mockup)
         self._bell_btn = QPushButton("🔔")
         self._bell_btn.setFixedSize(36, 36)
+        self._bell_btn.setToolTip("ทดสอบเสียงแจ้งเตือน")
         self._bell_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._bell_btn.setStyleSheet(
             "QPushButton { background-color: rgba(255,255,255,180); border: 1px solid #CFE2F8; "
             "border-radius: 18px; font-size: 16px; }"
             "QPushButton:hover { background-color: #FFFFFF; border-color: #90C2F9; }"
         )
-        self._bell_btn.clicked.connect(lambda: get_sound_service().play_check())
+        self._bell_btn.clicked.connect(self._on_bell_clicked)
         header_row.addWidget(self._bell_btn)
 
         # Legacy hidden buttons kept so existing integration tests referencing _history_btn / _settings_btn pass
@@ -318,16 +319,25 @@ class MainWindow(QMainWindow):
         if self._controller is not None:
             self._controller.queue.max_concurrent = SettingsDialog.get_max_concurrent()
 
+    def _on_bell_clicked(self) -> None:
+        get_sound_service().play_check()
+        self._on_status_message("เสียงแจ้งเตือนพร้อมใช้งาน")
+
     def _show_report_info(self) -> None:
         from app.ui.report_dialog import ReportDialog
 
         ReportDialog(self).exec()
 
     def _show_about_info(self) -> None:
+        from app.version import __version__
+
         QMessageBox.information(
             self,
             "เกี่ยวกับโปรแกรม — ClipDesk",
-            "ClipDesk — Download • Enjoy • Anytime\nดาวน์โหลดวิดีโอและเสียงจาก YouTube และ TikTok ได้อย่างง่ายดาย",
+            f"ClipDesk v{__version__}\n"
+            "โปรแกรมขนาดเล็กสำหรับช่วยดาวน์โหลดวิดีโอและเสียงจาก YouTube และ TikTok\n"
+            "พัฒนาโดย Gemini 4 Argon, Claude 5.5 Opus, Claude 5.5 Sonnet, DeepSeek 4.1 Flash และ Gemini 3.8 Flash\n\n"
+            "หากพบปัญหาหรือมีข้อเสนอแนะ สามารถแจ้งผ่านเมนู 'รายงานปัญหา' ได้เสมอครับ",
         )
 
     # ── Window Events ──

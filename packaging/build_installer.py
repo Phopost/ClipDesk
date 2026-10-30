@@ -46,7 +46,7 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("ClipDesk Setup")]
 [assembly: AssemblyDescription("ClipDesk One-Click Installer")]
 [assembly: AssemblyProduct("ClipDesk")]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.2.1.0")]
 
 namespace ClipDeskSetup
 {
@@ -232,13 +232,51 @@ namespace ClipDeskSetup
                 Directory.CreateDirectory(startMenuDir);
                 CreateLnk(Path.Combine(startMenuDir, "ClipDesk.lnk"), exePath, installDir, icoPath, "ClipDesk — ดาวน์โหลดวิดีโอและเสียงจาก YouTube & TikTok");
 
+                PurgeWindowsSearchIconCache();
+
                 try
                 {
-                    SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
+                    SHChangeNotify(0x08000000, 0x1000, IntPtr.Zero, IntPtr.Zero);
                 }
                 catch { }
             }
             catch { }
+        }
+
+        private static void PurgeWindowsSearchIconCache()
+        {
+            try
+            {
+                string packagesRoot = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Packages"
+                );
+                if (Directory.Exists(packagesRoot))
+                {
+                    foreach (string pkgDir in Directory.GetDirectories(packagesRoot))
+                    {
+                        string cacheRoot = Path.Combine(pkgDir, "LocalState", "AppIconCache");
+                        if (!Directory.Exists(cacheRoot)) continue;
+                        foreach (string file in Directory.GetFiles(cacheRoot, "*ClipDesk*", SearchOption.AllDirectories))
+                        {
+                            try { File.Delete(file); } catch { }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            foreach (string procName in new[] { "SearchApp", "StartMenuExperienceHost" })
+            {
+                try
+                {
+                    foreach (var p in Process.GetProcessesByName(procName))
+                    {
+                        try { p.Kill(); } catch { }
+                    }
+                }
+                catch { }
+            }
         }
 
         private static void CreateLnk(string lnkPath, string targetExe, string workDir, string icoPath, string description)
