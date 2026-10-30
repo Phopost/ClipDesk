@@ -1,0 +1,36 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts and PyInstaller
+build/
+dist/
+*.spec
+*.egg-info/
+.eggs/
+
+# Large vendor binaries (downloaded via python tools/prepare_vendor.py)
+vendor/windows-x64/*.exe
+vendor/windows-x64/*.zip
+vendor/windows-x64/*.7z
+
+# User data and databases
+.clipdesk/
+*.db
+*.log
+
+# Temp files
+*.tmp
+*.bak
+*~
+
+# IDE and OS files
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

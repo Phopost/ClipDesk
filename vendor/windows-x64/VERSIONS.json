@@ -1,0 +1,26 @@
+{
+  "yt-dlp": {
+    "file": "yt-dlp.exe",
+    "version": "2026.10.26",
+    "size": 23575744,
+    "sha256": "f5389d3698ecde4ef06f4e6b1ce0294fe9ac1396228c8990b8d3416d6d177a7d"
+  },
+  "ffmpeg": {
+    "file": "ffmpeg.exe",
+    "version": "ffmpeg version 9.0.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+    "size": 227823104,
+    "sha256": "589e50b766d251afdf181dd664d40bd94407e200b019989fd7468c7d118a28d0"
+  },
+  "ffprobe": {
+    "file": "ffprobe.exe",
+    "version": "ffprobe version 9.0.2-full_build-www.gyan.dev Copyright (c) 2007-2026 the FFmpeg developers",
+    "size": 227621376,
+    "sha256": "02264dfa4f56baaa31e443ece8aa16d397f6b008200e7fd184d22b9009e75fd3"
+  },
+  "node": {
+    "file": "node.exe",
+    "version": "v24.21.0",
+    "size": 93580104,
+    "sha256": "ba4e6d110e8c1592a1ecd390f6b05f3da124b13871a5be62b341a07a853c6c32"
+  }
+}

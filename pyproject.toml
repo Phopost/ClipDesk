@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clipdesk"
+version = "0.1.0"
+description = "Desktop video/audio downloader powered by yt-dlp"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "PySide6>=6.12.0",
+]
+
+[project.scripts]
+clipdesk = "app.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"
+markers = [
+    "integration: touches the network, real media or real processes",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-qt>=4.4",
+    "psutil>=5.9",
+    "pyinstaller>=6.0",
+]
