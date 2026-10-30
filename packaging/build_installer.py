@@ -182,27 +182,43 @@ namespace ClipDeskSetup
             }
         }
 
+        [DllImport("shell32.dll")]
+        private static extern void SHChangeNotify(int wEventId, int uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
         public static void CreateShortcuts(string installDir)
         {
             string exePath = Path.Combine(installDir, "ClipDesk.exe");
             if (!File.Exists(exePath)) return;
 
+            string icoPath = Path.Combine(installDir, "clipdesk.ico");
+            if (!File.Exists(icoPath))
+            {
+                string altIco = Path.Combine(installDir, "_internal", "app", "assets", "icons", "clipdesk.ico");
+                if (File.Exists(altIco)) icoPath = altIco;
+            }
+
             try
             {
                 string desktopDir = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                CreateLnk(Path.Combine(desktopDir, "ClipDesk.lnk"), exePath, installDir, "ClipDesk — ดาวน์โหลดวิดีโอและเสียงจาก YouTube & TikTok");
+                CreateLnk(Path.Combine(desktopDir, "ClipDesk.lnk"), exePath, installDir, icoPath, "ClipDesk — ดาวน์โหลดวิดีโอและเสียงจาก YouTube & TikTok");
 
                 string startMenuDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.Programs),
                     "ClipDesk"
                 );
                 Directory.CreateDirectory(startMenuDir);
-                CreateLnk(Path.Combine(startMenuDir, "ClipDesk.lnk"), exePath, installDir, "ClipDesk — ดาวน์โหลดวิดีโอและเสียงจาก YouTube & TikTok");
+                CreateLnk(Path.Combine(startMenuDir, "ClipDesk.lnk"), exePath, installDir, icoPath, "ClipDesk — ดาวน์โหลดวิดีโอและเสียงจาก YouTube & TikTok");
+
+                try
+                {
+                    SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
+                }
+                catch { }
             }
             catch { }
         }
 
-        private static void CreateLnk(string lnkPath, string targetExe, string workDir, string description)
+        private static void CreateLnk(string lnkPath, string targetExe, string workDir, string icoPath, string description)
         {
             Type shellType = Type.GetTypeFromProgID("WScript.Shell");
             if (shellType == null) return;
@@ -211,7 +227,14 @@ namespace ClipDeskSetup
             shortcut.TargetPath = targetExe;
             shortcut.WorkingDirectory = workDir;
             shortcut.Description = description;
-            shortcut.IconLocation = targetExe + ",0";
+            if (File.Exists(icoPath))
+            {
+                shortcut.IconLocation = icoPath;
+            }
+            else
+            {
+                shortcut.IconLocation = targetExe + ",0";
+            }
             shortcut.Save();
         }
     }
@@ -414,6 +437,9 @@ def find_csc() -> str:
 def build_installer(output_exe: str = DESKTOP_SETUP_EXE) -> str:
     if not os.path.isdir(DIST_APP_DIR):
         raise SystemExit(f"Missing build directory: {DIST_APP_DIR}. Run build_windows.py first.")
+
+    if os.path.isfile(ICON_PATH):
+        shutil.copy2(ICON_PATH, os.path.join(DIST_APP_DIR, "clipdesk.ico"))
 
     csc = find_csc()
 
