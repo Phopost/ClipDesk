@@ -87,7 +87,7 @@ def get_all_repo_files():
         dirnames[:] = [d for d in dirnames if d not in exclude_dirs]
         for f in filenames:
             rel = os.path.relpath(os.path.join(dirpath, f), ROOT).replace("\\", "/")
-            if rel.startswith("vendor/windows-x64/") and rel.endswith((".exe", ".zip", ".7z")):
+            if rel.startswith("vendor/windows-x64/") and rel.endswith((".exe", ".dll", ".zip", ".7z")):
                 continue
             if rel.endswith((".pyc", ".tmp", ".log", ".db")):
                 continue

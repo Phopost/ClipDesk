@@ -4,6 +4,10 @@ import logging
 import os
 import sys
 
+# Force lightweight Windows native audio backend (WASAPI/WMF) for QSoundEffect
+# so PySide6 does not load its duplicate 19.6 MiB ffmpegmediaplugin + avcodec DLLs.
+os.environ.setdefault("QT_MEDIA_BACKEND", "windows")
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 

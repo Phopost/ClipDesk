@@ -27,6 +27,20 @@ ASSETS = os.path.join(ROOT, "app", "assets")
 ICON = os.path.join(ASSETS, "icons", "clipdesk.ico")
 
 
+def _clean_dir(path: str) -> None:
+    shutil.rmtree(path, ignore_errors=True)
+    if os.path.exists(path):
+        stash = os.path.join(
+            tempfile.gettempdir(),
+            f"clipdesk_old_build_{os.getpid()}_{os.path.basename(path)}",
+        )
+        try:
+            os.rename(path, stash)
+            shutil.rmtree(stash, ignore_errors=True)
+        except OSError:
+            pass
+
+
 def build(clean: bool = True, console: bool = False) -> str:
     if not os.path.isfile(os.path.join(VENDOR, "yt-dlp.exe")):
         raise SystemExit(
@@ -34,8 +48,8 @@ def build(clean: bool = True, console: bool = False) -> str:
         )
 
     if clean:
-        shutil.rmtree(os.path.join(DIST_DIR, "ClipDesk"), ignore_errors=True)
-        shutil.rmtree(os.path.join(BUILD_DIR, "ClipDesk"), ignore_errors=True)
+        _clean_dir(os.path.join(DIST_DIR, "ClipDesk"))
+        _clean_dir(os.path.join(BUILD_DIR, "ClipDesk"))
 
     os.makedirs(DIST_DIR, exist_ok=True)
     os.makedirs(BUILD_DIR, exist_ok=True)
@@ -58,8 +72,6 @@ def build(clean: bool = True, console: bool = False) -> str:
         ROOT,
         "--add-data",
         f"{ASSETS}{os.pathsep}app/assets",
-        "--add-data",
-        f"{VENDOR}{os.pathsep}vendor/windows-x64",
         "--hidden-import",
         "PySide6.QtMultimedia",
         "--hidden-import",
@@ -70,6 +82,20 @@ def build(clean: bool = True, console: bool = False) -> str:
         "pytest",
         "--exclude-module",
         "_pytest",
+        "--exclude-module",
+        "PySide6.QtQml",
+        "--exclude-module",
+        "PySide6.QtQuick",
+        "--exclude-module",
+        "PySide6.QtOpenGL",
+        "--exclude-module",
+        "PySide6.QtPdf",
+        "--exclude-module",
+        "PySide6.QtSvg",
+        "--exclude-module",
+        "PySide6.QtMultimediaWidgets",
+        "--exclude-module",
+        "PySide6.QtVirtualKeyboard",
     ]
     cmd.append("--console" if console else "--windowed")
 
@@ -85,14 +111,99 @@ def build(clean: bool = True, console: bool = False) -> str:
     if not os.path.isfile(exe):
         raise SystemExit("build finished but ClipDesk.exe is missing")
 
-    # Ship the license notices and icon next to the executable
+    _prune_unused_qt_files(os.path.join(DIST_DIR, "ClipDesk", "_internal", "PySide6"))
+
+    # Copy vendor/windows-x64 directly into _internal/vendor/windows-x64 after
+    # COLLECT so PyInstaller's binary dependency scanner does not duplicate
+    # 179.9 MiB of shared FFmpeg av*/sw* DLLs into _internal/.
+    vendor_dst = os.path.join(DIST_DIR, "ClipDesk", "_internal", "vendor", "windows-x64")
+    shutil.rmtree(vendor_dst, ignore_errors=True)
+    shutil.copytree(VENDOR, vendor_dst)
+
+    # Ship the license notices next to the executable
     notices = os.path.join(ROOT, "THIRD_PARTY_NOTICES.md")
     if os.path.isfile(notices):
         shutil.copy2(notices, os.path.join(DIST_DIR, "ClipDesk", "THIRD_PARTY_NOTICES.md"))
-    if os.path.isfile(ICON):
-        shutil.copy2(ICON, os.path.join(DIST_DIR, "ClipDesk", "clipdesk.ico"))
 
     return exe
+
+
+# Proven-unused PySide6 binaries & plugins (verified via PE import graph and
+# runtime memory-map trace). ClipDesk uses QWidget 2D raster UI + Windows
+# native audio backend (QT_MEDIA_BACKEND=windows) and never uses QML, Quick,
+# OpenGL software rasterizer, PDF, SVG, VirtualKeyboard, or Qt's duplicate
+# FFmpeg multimedia plugin.
+_UNUSED_PYSIDE6_FILES = (
+    "opengl32sw.dll",
+    # Duplicate FFmpeg DLLs from Qt Multimedia (we use windowsmediaplugin.dll)
+    "avcodec-63.dll",
+    "avformat-63.dll",
+    "avutil-61.dll",
+    "swresample-7.dll",
+    "swscale-10.dll",
+    os.path.join("plugins", "multimedia", "ffmpegmediaplugin.dll"),
+    # QML / Quick / VirtualKeyboard / OpenGL / PDF / SVG / MultimediaWidgets
+    "Qt6Quick.dll",
+    "Qt6Qml.dll",
+    "Qt6QmlMeta.dll",
+    "Qt6QmlModels.dll",
+    "Qt6QmlWorkerScript.dll",
+    "Qt6OpenGL.dll",
+    "Qt6VirtualKeyboard.dll",
+    "Qt6Pdf.dll",
+    "Qt6Svg.dll",
+    "Qt6MultimediaWidgets.dll",
+    "QtMultimediaWidgets.pyd",
+    os.path.join("plugins", "platforminputcontexts", "qtvirtualkeyboardplugin.dll"),
+    os.path.join("plugins", "imageformats", "qpdf.dll"),
+    os.path.join("plugins", "imageformats", "qsvg.dll"),
+    os.path.join("plugins", "iconengines", "qsvgicon.dll"),
+    # Unused experimental platform / imageformat / touch plugins
+    os.path.join("plugins", "platforms", "qdirect2d.dll"),
+    os.path.join("plugins", "imageformats", "qtiff.dll"),
+    os.path.join("plugins", "imageformats", "qicns.dll"),
+    os.path.join("plugins", "imageformats", "qtga.dll"),
+    os.path.join("plugins", "imageformats", "qwbmp.dll"),
+    os.path.join("plugins", "generic", "qtuiotouchplugin.dll"),
+)
+
+_UNUSED_PYSIDE6_DIRS = (
+    "translations",
+    "iconengines",
+    "platforminputcontexts",
+    "generic",
+)
+
+
+def _prune_unused_qt_files(pyside_dir: str) -> None:
+    """Deterministically remove unused Qt binaries/translations after COLLECT."""
+    if not os.path.isdir(pyside_dir):
+        return
+
+    removed_bytes = 0
+    removed_count = 0
+
+    for rel in _UNUSED_PYSIDE6_FILES:
+        target = os.path.join(pyside_dir, rel)
+        if os.path.isfile(target):
+            removed_bytes += os.path.getsize(target)
+            os.remove(target)
+            removed_count += 1
+
+    for dirname in _UNUSED_PYSIDE6_DIRS:
+        for base in (pyside_dir, os.path.join(pyside_dir, "plugins")):
+            dpath = os.path.join(base, dirname)
+            if os.path.isdir(dpath):
+                for dp, _dn, fn in os.walk(dpath):
+                    for f in fn:
+                        removed_bytes += os.path.getsize(os.path.join(dp, f))
+                        removed_count += 1
+                shutil.rmtree(dpath)
+
+    print(
+        f"Pruned {removed_count} unused PySide6 files "
+        f"({removed_bytes / (1024 * 1024):.1f} MiB saved)"
+    )
 
 
 def smoke_test(exe: str, timeout: int = 120) -> bool:

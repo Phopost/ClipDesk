@@ -87,9 +87,9 @@ def _download(url: str, policy: QualityPolicy, work_dir: str, timeout: int = 600
 
 def test_node_js_runtime_detected(qapp):
     args = get_js_runtime_args()
-    assert args, "Node.js runtime not found — YouTube extraction will be degraded"
+    assert args, "JS runtime not found — YouTube extraction will be degraded"
     assert args[0] == "--js-runtimes"
-    assert args[1].startswith("node:")
+    assert args[1].startswith(("quickjs:", "node:"))
 
 
 def test_live_metadata(qapp):

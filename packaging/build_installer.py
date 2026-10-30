@@ -152,6 +152,7 @@ namespace ClipDeskSetup
                     int total = Math.Max(1, archive.Entries.Count);
                     int current = 0;
 
+                    PurgeOldInstall(installDir);
                     Directory.CreateDirectory(installDir);
 
                     foreach (var entry in archive.Entries)
@@ -180,6 +181,28 @@ namespace ClipDeskSetup
                     }
                 }
             }
+        }
+
+        private static void PurgeOldInstall(string installDir)
+        {
+            if (!Directory.Exists(installDir)) return;
+            try
+            {
+                Directory.Delete(installDir, true);
+                return;
+            }
+            catch { }
+
+            try
+            {
+                string stash = Path.Combine(
+                    Path.GetTempPath(),
+                    "clipdesk_prev_" + Guid.NewGuid().ToString("N").Substring(0, 8)
+                );
+                Directory.Move(installDir, stash);
+                try { Directory.Delete(stash, true); } catch { }
+            }
+            catch { }
         }
 
         [DllImport("shell32.dll")]
@@ -437,9 +460,6 @@ def find_csc() -> str:
 def build_installer(output_exe: str = DESKTOP_SETUP_EXE) -> str:
     if not os.path.isdir(DIST_APP_DIR):
         raise SystemExit(f"Missing build directory: {DIST_APP_DIR}. Run build_windows.py first.")
-
-    if os.path.isfile(ICON_PATH):
-        shutil.copy2(ICON_PATH, os.path.join(DIST_APP_DIR, "clipdesk.ico"))
 
     csc = find_csc()
 

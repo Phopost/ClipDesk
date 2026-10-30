@@ -7,20 +7,50 @@
   },
   "ffmpeg": {
     "file": "ffmpeg.exe",
-    "version": "ffmpeg version 9.0.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
-    "size": 227823104,
-    "sha256": "589e50b766d251afdf181dd664d40bd94407e200b019989fd7468c7d118a28d0"
+    "version": "ffmpeg version n9.0.2-39-g7adfbe40dc-20261030 Copyright (c) 2000-2026 the FFmpeg developers",
+    "size": 551424,
+    "sha256": "8ae725e6b560339faf248371b97e14c9c23f63842a4a89a6349dc88b59503ed9"
   },
   "ffprobe": {
     "file": "ffprobe.exe",
-    "version": "ffprobe version 9.0.2-full_build-www.gyan.dev Copyright (c) 2007-2026 the FFmpeg developers",
-    "size": 227621376,
-    "sha256": "02264dfa4f56baaa31e443ece8aa16d397f6b008200e7fd184d22b9009e75fd3"
+    "version": "ffprobe version n9.0.2-39-g7adfbe40dc-20261030 Copyright (c) 2007-2026 the FFmpeg developers",
+    "size": 269824,
+    "sha256": "757fe225d0f11079e43f52629ed761d52754aeb9bd66d03418e25858f93699cf"
   },
-  "node": {
-    "file": "node.exe",
-    "version": "v24.21.0",
-    "size": 93580104,
-    "sha256": "ba4e6d110e8c1592a1ecd390f6b05f3da124b13871a5be62b341a07a853c6c32"
+  "qjs": {
+    "file": "qjs.exe",
+    "version": "0.17.0",
+    "size": 2151363,
+    "sha256": "2aeabf0092c3262d6b2609824418f7dd7ed1f1df939f73b2b15645230cac0d77"
+  },
+  "ffmpeg_shared_dlls": {
+    "avcodec-63.dll": {
+      "size": 119741952,
+      "sha256": "64f4fac84019832204a936cea23c8b851091771f19356bc0cfc333cfd56bc3ce"
+    },
+    "avdevice-63.dll": {
+      "size": 5008384,
+      "sha256": "946dcafec0ad5b3afc451199871e75d0549f352b5e8aa54a1ff88a2dea7ad007"
+    },
+    "avfilter-12.dll": {
+      "size": 37678080,
+      "sha256": "09a7177ae3c57cdea4172ed8b521403d4e3d483d0128f020f2ea5f5f0d276415"
+    },
+    "avformat-63.dll": {
+      "size": 20134400,
+      "sha256": "84a9c1796e1e4c026a9c9e4eddd0af24ac47c8fe4febfad4c667c1d978f65b65"
+    },
+    "avutil-61.dll": {
+      "size": 3025408,
+      "sha256": "507e50e71bf770c6a7e43ddab8307fb9bcc6499310b42e5c3a0a059359c6c7ae"
+    },
+    "swresample-7.dll": {
+      "size": 747008,
+      "sha256": "47b90b7b1e86b13fc5a72eb1996ef3b3a664fdd5b65d9f9005b6d16c356cff4c"
+    },
+    "swscale-10.dll": {
+      "size": 2343936,
+      "sha256": "2c319f824d53074caa0dd94f314790179161e94d25d29d1cffde61d77a588129"
+    }
   }
 }

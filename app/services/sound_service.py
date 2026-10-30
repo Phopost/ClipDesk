@@ -17,6 +17,8 @@ import os
 import time
 from typing import Optional
 
+os.environ.setdefault("QT_MEDIA_BACKEND", "windows")
+
 from PySide6.QtCore import QObject, QSettings, QUrl
 
 try:

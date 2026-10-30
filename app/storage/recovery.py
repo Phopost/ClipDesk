@@ -82,6 +82,7 @@ def _clean_root(
     max_age_seconds: int,
     now: float,
     report: RecoveryReport,
+    protected_task_ids: set[str] | None = None,
 ) -> None:
     if not os.path.isdir(root):
         return
@@ -112,6 +113,8 @@ def _clean_root(
                 continue
             if not _is_task_dir_name(entry.name):
                 continue
+            if protected_task_ids and entry.name in protected_task_ids:
+                continue
             age = now - entry.stat().st_mtime
             if age < max_age_seconds:
                 continue
@@ -139,12 +142,23 @@ def run_startup_recovery(
     max_age_seconds: int = STALE_AGE_SECONDS,
     now: Optional[float] = None,
 ) -> RecoveryReport:
-    """Scan for stale work dirs and mark previously-running tasks as failed."""
+    """Scan for stale work dirs and mark previously-running tasks as failed.
+
+    Never deletes final output files or work dirs belonging to queued tasks.
+    """
     report = RecoveryReport()
     current = now if now is not None else time.time()
 
+    protected_ids: set[str] = set()
+    try:
+        for task in db.fetch_history(limit=500, final_only=False):
+            if task.state.name == "QUEUED":
+                protected_ids.add(task.task_id)
+    except Exception:
+        pass
+
     for root in _candidate_roots(db, default_dir, extra_roots):
-        _clean_root(root, max_age_seconds, current, report)
+        _clean_root(root, max_age_seconds, current, report, protected_ids)
 
     report.interrupted_tasks = db.mark_interrupted()
     return report

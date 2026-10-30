@@ -57,3 +57,22 @@ def test_missing_directory_is_safe(tmp_path):
     report = run_startup_recovery(db, default_dir=str(tmp_path / "does-not-exist"))
     assert report.removed_dirs == 0
     db.close()
+
+
+def test_preserves_queued_task_work_dir_and_output_files(tmp_path):
+    db = Database(str(tmp_path / "test.db"))
+    downloads = tmp_path / "Videos"
+    downloads.mkdir()
+    final_video = downloads / "completed_video.mp4"
+    final_video.write_bytes(b"video-bytes")
+
+    queued_task = DownloadTask(title="รอคิว", state=TaskState.QUEUED)
+    db.upsert_task(queued_task)
+    queued_dir = _make_stale_tree(str(downloads), queued_task.task_id, 48 * 3600)
+
+    report = run_startup_recovery(db, default_dir=str(downloads))
+    assert os.path.exists(queued_dir)
+    assert final_video.exists()
+    assert report.removed_dirs == 0
+    db.close()
+

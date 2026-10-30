@@ -1,6 +1,7 @@
 """Application bootstrapper — dependency checks and initialization."""
 
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import sys
 
@@ -9,32 +10,35 @@ from PySide6.QtCore import QSettings
 
 from app.services.dependency_service import check_dependencies
 
-# Log setup
+# Log setup (bounded to 2 MiB x 3 files max = 6 MiB total)
 LOG_DIR = os.path.join(os.path.expanduser("~"), ".clipdesk", "logs")
+LOG_MAX_BYTES = 2 * 1024 * 1024
+LOG_BACKUP_COUNT = 2
 
 
 def setup_logging() -> None:
-    """Configure rotating file logging."""
+    """Configure bounded rotating file logging."""
     os.makedirs(LOG_DIR, exist_ok=True)
     log_file = os.path.join(LOG_DIR, "clipdesk.log")
 
-    # Rotate if > 5 MB
-    if os.path.isfile(log_file):
+    # Remove legacy .old file if present from older versions
+    legacy_old = log_file + ".old"
+    if os.path.isfile(legacy_old):
         try:
-            if os.path.getsize(log_file) > 5 * 1024 * 1024:
-                backup = log_file + ".old"
-                if os.path.isfile(backup):
-                    os.remove(backup)
-                os.rename(log_file, backup)
+            os.remove(legacy_old)
         except OSError:
             pass
 
+    handler = RotatingFileHandler(
+        log_file,
+        maxBytes=LOG_MAX_BYTES,
+        backupCount=LOG_BACKUP_COUNT,
+        encoding="utf-8",
+    )
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=[
-            logging.FileHandler(log_file, encoding="utf-8"),
-        ],
+        handlers=[handler],
     )
     # Don't log sensitive data
     logging.getLogger("urllib3").setLevel(logging.WARNING)

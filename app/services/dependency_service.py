@@ -135,7 +135,12 @@ def check_dependencies(force_refresh: bool = False) -> DependencyStatus:
     status.ytdlp = _check_tool("yt-dlp")
     status.ffmpeg = _check_tool("ffmpeg", "-version")
     status.ffprobe = _check_tool("ffprobe", "-version")
-    status.nodejs = _check_tool("node")
+    # Prefer bundled QuickJS (qjs.exe, 2.05 MiB) over Node.js (89.2 MiB)
+    qjs_info = _check_tool("qjs", "--version")
+    if qjs_info.available:
+        status.nodejs = qjs_info
+    else:
+        status.nodejs = _check_tool("node")
 
     with _cache_lock:
         _cached_status = status
@@ -151,21 +156,24 @@ def get_tool_path(name: str) -> Optional[str]:
         "ffmpeg": status.ffmpeg,
         "ffprobe": status.ffprobe,
         "node": status.nodejs,
+        "qjs": status.nodejs,
     }
     tool = tool_map.get(name)
     return tool.path if tool and tool.available else None
 
 
 def get_js_runtime_args() -> list[str]:
-    """yt-dlp arguments enabling the Node.js JavaScript runtime.
+    """yt-dlp arguments enabling the bundled JavaScript runtime (QuickJS or Node.js).
 
     Recent yt-dlp versions require a JS runtime (with yt-dlp-ejs) to solve
-    YouTube challenges. Returns an empty list when Node.js is unavailable so
+    YouTube challenges. Returns an empty list when no runtime is available so
     yt-dlp can still fall back to its own defaults.
     """
-    node_path = get_tool_path("node")
-    if node_path:
-        return ["--js-runtimes", f"node:{node_path}"]
+    js_path = get_tool_path("qjs")
+    if js_path:
+        exe_name = os.path.basename(js_path).lower()
+        runtime_key = "quickjs" if "qjs" in exe_name else "node"
+        return ["--js-runtimes", f"{runtime_key}:{js_path}"]
     return []
 
 
