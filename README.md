@@ -1,6 +1,9 @@
 <div align="center">
 
 # 🌊 ClipDesk (คลิปเดสก์)
+
+> 🤖 **โปรเจกต์นี้พัฒนาโดย AI** — **Gemini 4 Argon** · **Claude 5.5 Opus** · **Claude 5.5 Sonnet** · **DeepSeek 4.1 Flash** · **Gemini 3.8 Flash**
+
 ### โปรแกรมดาวน์โหลดวิดีโอและเสียง (YouTube & TikTok) บน Windows 10/11
 **สวยงาม • รวดเร็วระดับเต็มสปีด • ใช้งานง่ายเพียงคลิกเดียว**
 
@@ -8,7 +11,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
 [![UI Framework](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-41CD52?style=for-the-badge&logo=qt)](https://www.qt.io/)
 [![Engine](https://img.shields.io/badge/Engine-yt--dlp%20%2B%20FFmpeg-FF0000?style=for-the-badge&logo=youtube)](https://github.com/yt-dlp/yt-dlp)
-[![Release](https://img.shields.io/badge/Release-v1.0.0-blue?style=for-the-badge)](https://github.com/Phopost/ClipDesk/releases)
+[![Release](https://img.shields.io/badge/Release-v1.1.0-blue?style=for-the-badge)](https://github.com/Phopost/ClipDesk/releases)
 
 ---
 

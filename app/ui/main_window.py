@@ -319,11 +319,9 @@ class MainWindow(QMainWindow):
             self._controller.queue.max_concurrent = SettingsDialog.get_max_concurrent()
 
     def _show_report_info(self) -> None:
-        QMessageBox.information(
-            self,
-            "รายงานปัญหา — ClipDesk",
-            "หากพบปัญหาการดาวน์โหลด สามารถตรวจสอบลิงก์หรือส่งรายงานปัญหาได้ในหน้านี้",
-        )
+        from app.ui.report_dialog import ReportDialog
+
+        ReportDialog(self).exec()
 
     def _show_about_info(self) -> None:
         QMessageBox.information(
