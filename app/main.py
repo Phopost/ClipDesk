@@ -26,6 +26,13 @@ def main():
     app.setApplicationName("ClipDesk")
     app.setOrganizationName("ClipDesk")
 
+    # Set Window & Taskbar Icon
+    from PySide6.QtGui import QIcon
+    from app.services.app_paths import asset_path
+    icon_file = asset_path("icons", "clipdesk.ico")
+    if os.path.isfile(icon_file):
+        app.setWindowIcon(QIcon(icon_file))
+
     # Logging
     setup_logging()
 

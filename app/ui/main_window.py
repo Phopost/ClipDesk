@@ -7,7 +7,9 @@ matching the exact screenshot provided by the user.
 
 from __future__ import annotations
 
+import os
 from PySide6.QtCore import Qt, QEvent, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QStatusBar, QMessageBox,
@@ -47,6 +49,9 @@ class MainWindow(QMainWindow):
 
     def _setup_ui(self) -> None:
         self.setWindowTitle("ClipDesk")
+        icon_file = asset_path("icons", "clipdesk.ico")
+        if os.path.isfile(icon_file):
+            self.setWindowIcon(QIcon(icon_file))
         self.setMinimumSize(980, 650)
         self.resize(1060, 690)
 

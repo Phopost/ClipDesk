@@ -14,6 +14,7 @@ Provides:
 from __future__ import annotations
 
 import math
+import os
 from PySide6.QtCore import (
     Qt, QRectF, QPointF, QTimer, Property, QPropertyAnimation, QEasingCurve, Signal,
 )
@@ -23,6 +24,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget, QFrame, QPushButton
 
+from app.services.app_paths import asset_path
 from app.services.sound_service import get_sound_service
 
 
@@ -176,13 +178,25 @@ class WaveCardFrame(QFrame):
 
 
 class ClipDeskLogoWidget(QWidget):
-    """Paints the 3D glossy blue play-triangle with download arrow logo."""
+    """Paints the brand logo mark (using crisp clipdesk.png asset with vector fallback)."""
 
     def __init__(self, size: int = 44, parent=None) -> None:
         super().__init__(parent)
         self.setFixedSize(size, size)
+        self._pixmap = None
+        icon_path = asset_path("icons", "clipdesk.png")
+        if os.path.isfile(icon_path):
+            self._pixmap = QPixmap(icon_path)
 
     def paintEvent(self, event) -> None:
+        if self._pixmap and not self._pixmap.isNull():
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            p.drawPixmap(self.rect(), self._pixmap)
+            p.end()
+            return
+
         s = float(self.width())
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
